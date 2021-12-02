@@ -1,7 +1,10 @@
 import pymysql
 import csv
+import boto3
 import configparser
+import psycopg2
 
+# get the MySQL connection info and connect
 parser = configparser.ConfigParser()
 parser.read("pipeline.conf")
 hostname = parser.get("mysql_config", "hostname")
@@ -21,8 +24,8 @@ if conn is None:
 else:
   print("MySQL connection established!")
 
-  m_query = "SELECT * FROM Orders;"
-local_filename = "order_extract.csv"
+m_query = "SELECT * FROM Orders;"
+local_filename = "week13-kamal-borlakunta.csv"
 
 m_cursor = conn.cursor()
 m_cursor.execute(m_query)
@@ -36,3 +39,27 @@ fp.close()
 m_cursor.close()
 conn.close()
 
+# load the aws_boto_credentials values
+parser = configparser.ConfigParser()
+parser.read("pipeline.conf")
+access_key = parser.get(
+    "aws_boto_credentials",
+    "access_key")
+secret_key = parser.get(
+    "aws_boto_credentials",
+    "secret_key")
+bucket_name = parser.get(
+    "aws_boto_credentials",
+    "bucket_name")
+
+s3 = boto3.client(
+    's3',
+    aws_access_key_id=access_key,
+    aws_secret_access_key=secret_key)
+
+s3_file = local_filename
+
+s3.upload_file(
+    local_filename,
+    bucket_name,
+    s3_file)
